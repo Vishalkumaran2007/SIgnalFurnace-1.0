@@ -1,0 +1,20 @@
+CREATE TABLE `ip_reputations` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`investigationId` int NOT NULL,
+	`artifactId` int NOT NULL,
+	`userId` int NOT NULL,
+	`ip` varchar(64) NOT NULL,
+	`provider` varchar(128) NOT NULL,
+	`abuseConfidenceScore` int NOT NULL,
+	`totalReports` int NOT NULL,
+	`numDistinctUsers` int NOT NULL,
+	`lastReportedAt` timestamp,
+	`countryCode` varchar(8),
+	`usageType` varchar(256),
+	`isp` varchar(512),
+	`domain` varchar(512),
+	`isWhitelisted` int NOT NULL DEFAULT 0,
+	`rawJson` text,
+	`enrichedAt` timestamp NOT NULL DEFAULT (now()),
+	CONSTRAINT `ip_reputations_id` PRIMARY KEY(`id`)
+);

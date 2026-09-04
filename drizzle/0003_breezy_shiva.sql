@@ -1,0 +1,1 @@
+ALTER TABLE `email_artifacts` ADD `findingsJson` text;
