@@ -153,4 +153,4 @@
 - [x] Display saved multi-source geolocation provenance, cache status, and approximate-location boundaries in the Location Map UI.
 - [x] Display encrypted provider availability in geolocation results while keeping IP-API free-plan HTTP access disabled.
 - [x] Add migrations, tests, browser control checks, and GitHub synchronization for the completed requirements-assistant and forensic-workspace upgrade.
-- [ ] Run final deterministic integration checks for source-IP extraction and shared UI button-action handlers, then verify GitHub branch parity.
+- [x] Run final deterministic integration checks for source-IP extraction and shared UI button-action handlers, then verify GitHub branch parity.
