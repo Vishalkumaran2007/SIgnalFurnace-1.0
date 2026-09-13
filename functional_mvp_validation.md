@@ -1,6 +1,6 @@
 # Functional SIH26106 Validation Notes
 
-The updated requirements preview initially showed **20 available**, **1 waiting for live services**, and **1 not built**. The completed high-risk owner-alert workflow moved the final alert item to available; the checklist now has **21 available**, **1 waiting for live services**, and **0 not built**. The available rows include local URL and attachment review, consent-based approximate IP geolocation and map/heatmap display, private similar-case comparison, role-aware administration, evidence-based reports, owner alerts, and the protected analysis workflow.
+The updated requirements preview initially showed **20 available**, **1 waiting for live services**, and **1 not built**. The completed high-risk owner-alert workflow moved the final alert item to available; the checklist now has **21 available**, **1 waiting for live services**, and **0 not built**. The available rows include local URL and attachment review, consent-based approximate IP geolocation and supported marker-map display, private similar-case comparison, role-aware administration, evidence-based reports, owner alerts, and the protected analysis workflow.
 
 The remaining waiting connection is the grouped AbuseIPDB, VirusTotal, and PhishTank integration. High-risk owner alerts use the built-in project-owner notification channel; custom recipient channels remain outside the current scope. These statuses intentionally avoid presenting unsupported external reputation results as live data.
 

@@ -26,7 +26,7 @@ function parseRecommendations(value: string | null | undefined) {
 
 export function buildCaseCsv(detail: ReportDetail) {
   const rows: Array<[string, string]> = [
-    ["Report type", "Origin Tracker investigation export"],
+    ["Report type", "Signal Furnace investigation export"],
     ["Case number", detail.investigation.caseNumber],
     ["Case title", detail.investigation.title],
     ["Status", detail.investigation.status],
@@ -83,7 +83,7 @@ export function downloadCasePdf(detail: ReportDetail) {
     doc.text(lines, margin, y);
     y += lines.length * 13 + 7;
   };
-  doc.setFont("courier", "bold"); doc.setFontSize(15); doc.text("ORIGIN TRACKER", margin, y); y += 18;
+  doc.setFont("courier", "bold"); doc.setFontSize(15); doc.text("SIGNAL FURNACE", margin, y); y += 18;
   doc.setFont("courier", "normal"); doc.setFontSize(9);
   add("Case", detail.investigation.caseNumber);
   add("Title", detail.investigation.title);

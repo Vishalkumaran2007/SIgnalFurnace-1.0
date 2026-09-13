@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { simpleParser } from "mailparser";
 import { invokeLLM } from "./_core/llm";
+import { isPublicIpv4 } from "./geolocation";
 
 export type AuthResult = "pass" | "fail" | "neutral" | "missing";
 export type IndicatorType = "ip" | "domain" | "url" | "email" | "hash";
@@ -61,8 +62,15 @@ function domainFromAddress(value: string | null) {
   return match?.[1]?.toLowerCase() || null;
 }
 
-function extractOriginatingIp(text: string) {
-  return text.match(ipv4Pattern)?.[0] || null;
+export function extractOriginatingIp(rawHeaders: string) {
+  const receivedHeaders = rawHeaders.match(/^received:\s*[^\r\n]*/gim) || [];
+  const receivedIps = receivedHeaders
+    .map((header) => header.match(ipv4Pattern)?.[0] || null)
+    .filter((ip): ip is string => Boolean(ip));
+  const oldestPublicReceivedIp = [...receivedIps].reverse().find(isPublicIpv4);
+  if (oldestPublicReceivedIp) return oldestPublicReceivedIp;
+  if (receivedIps.length) return receivedIps.at(-1) || null;
+  return rawHeaders.match(ipv4Pattern)?.[0] || null;
 }
 
 export function isLikelyEml(buffer: Buffer) {
@@ -116,12 +124,13 @@ export async function parseEml(buffer: Buffer): Promise<ParsedEmailAnalysis> {
   const bodyText = String(parsed.text || parsed.html || "").slice(0, 100000);
   const urls = unique((bodyText.match(urlPattern) || []).map((url) => url.replace(/[.,;:]+$/, "")));
   const allEmailText = `${sender || ""}\n${recipient || ""}\n${replyTo || ""}\n${bodyText}`;
-  const originatingIp = extractOriginatingIp(`${rawHeaders}\n${bodyText}`);
+  const originatingIp = extractOriginatingIp(rawHeaders);
   const spf = authStatus(authenticationResults.match(/spf=([^\s;]+)/i)?.[1]);
   const dkim = authStatus(authenticationResults.match(/dkim=([^\s;]+)/i)?.[1]);
   const dmarc = authStatus(authenticationResults.match(/dmarc=([^\s;]+)/i)?.[1]);
   const indicators: Array<{ type: IndicatorType; value: string; source: string }> = [];
   urls.forEach((url) => { indicators.push({ type: "url", value: url, source: "email body" }); try { indicators.push({ type: "domain", value: new URL(url).hostname.toLowerCase(), source: "url host" }); } catch { /* malformed URLs remain as URL indicators only */ } });
+  [sender, recipient, replyTo, returnPath].forEach((address) => { const domain = domainFromAddress(address); if (domain) indicators.push({ type: "domain", value: domain, source: "email address domain" }); });
   unique(rawHeaders.match(ipv4Pattern) || []).forEach((ip) => indicators.push({ type: "ip", value: ip, source: "email headers" }));
   unique(allEmailText.match(emailPattern) || []).forEach((email) => indicators.push({ type: "email", value: email.toLowerCase(), source: "email content" }));
   const reasons: string[] = [];

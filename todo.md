@@ -122,4 +122,23 @@
 - [x] Create and deliver a reusable SIH26106 product overview and implementation-ready master build prompt.
 - [x] Rewrite the supplied SIH26106 attachment into a coherent, secure, implementation-ready master prompt without changing the current application.
 - [x] Refresh the creative interactive README and push it to the selected SIgnalFurnace-1.0 GitHub repository.
-- [ ] Synchronize the complete application source and documentation to SIgnalFurnace-1.0 while excluding secrets and generated artifacts.
+- [x] Synchronize the complete application source and documentation to SIgnalFurnace-1.0 while excluding secrets and generated artifacts.
+- [x] Fix authenticated Map container initialization error when the map view renders before its container is available.
+- [x] Investigate inaccurate IP geolocation and correct coordinate handling or accuracy messaging without fabricating precision.
+- [x] Add live-refresh behavior to the approved IP geolocation map while clearly labeling results as approximate, not device tracking.
+- [x] Replace deprecated Google Heatmap Layer usage with a supported safe visualization or evidence-based fallback.
+- [ ] Process the user-authorized original_msg.eml and record only real geolocation, provider, and alert outcomes supported by its evidence.
+- [x] Add truthful sender/recipient email-domain context and improve the no-originating-IP analysis and location-map UI without treating domains as source IPs.
+- [x] Audit and implement the actionable security hardening items from pasted_content_2.txt: HTTPS/security headers, CSP review, input/authorization/rate protections, and secure session configuration.
+- [x] Rebrand Origin Tracker to Signal Furnace across the application and update the ordered team list, including Srinidhi H.
+- [x] Review the requested IPGeolocation.io integration without exposing the supplied API key; use the existing secure provider boundary or add secrets safely if an integration change is justified.
+- [x] Retrieve and verify exact ThreeUI source bundles; record the decision not to add their large WebGL navigation implementations because accessible native controls already satisfy the current workspace and no source was approximated.
+- [x] Add a documentation page with clear security/product guidance and validate its navigation.
+- [x] Review the homepage background assets and add a resilient inline evidence visual fallback so unavailable optional storage media does not produce a broken visual.
+- [x] Audit all visible buttons and navigation controls in the public and authenticated workspace, fix broken or misleading actions, and add regression coverage.
+- [x] Audit the remaining landing and authenticated controls non-destructively; verify public/workspace navigation, exports, requirements routing, no-case behavior, and source-backed mutation handlers without inserting synthetic case notes or status changes.
+- [x] Add targeted contracts for critical documentation, requirements, report-export, protected navigation, and button state behavior.
+- [x] Redesign the public Signal Furnace landing with the verified ThreeUI Matrix Junction background, refined hierarchy, and a less congested visual composition.
+- [x] Rework the authenticated workspace into a calmer forensic canvas with improved navigation, panel hierarchy, and readable evidence density across dashboard, map, intelligence, and case detail views.
+- [x] Audit the upgraded dark and light themes, responsive layouts, and visual control states against the supplied reference direction without breaking real evidence workflows.
+- [x] Replace the blank Google Maps script-load failure state with a visible, accessible evidence-location fallback that preserves saved coordinates and does not emit a runtime error.

@@ -8,6 +8,7 @@ import App from "./App";
 import { startLogin } from "./const";
 import "./index.css";
 import "./material-workspace.css";
+import "./signal-redesign.css";
 
 const queryClient = new QueryClient();
 

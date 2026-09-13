@@ -1,6 +1,6 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "client/src/threeui/shaders/animated-top-dock/AnimatedTopDock.tsx", "client/src/threeui/shaders/animated-top-dock/retroPixelField.ts", "client/src/threeui/shaders/animated-top-dock/glassParticleField.ts", "client/src/threeui/shaders/laser/LaserCollection.tsx", "client/src/threeui/shaders/laser/LaserVariants.tsx", "client/src/threeui/shaders/laser/laserShaders.ts", "client/src/threeui/shaders/neuform-isolated/NeuformBatchEffects.tsx"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",

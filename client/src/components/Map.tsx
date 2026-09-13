@@ -76,7 +76,7 @@
 
 /// <reference types="@types/google.maps" />
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePersistFn } from "@/hooks/usePersistFn";
 import { cn } from "@/lib/utils";
 
@@ -92,21 +92,32 @@ const FORGE_BASE_URL =
   "https://forge.butterfly-effect.dev";
 const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
 
-function loadMapScript() {
-  return new Promise(resolve => {
+let mapScriptPromise: Promise<void> | null = null;
+
+function loadMapScript(): Promise<void> {
+  if (window.google?.maps) return Promise.resolve();
+  if (mapScriptPromise) return mapScriptPromise;
+
+  mapScriptPromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry,visualization`;
+    script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
     script.async = true;
     script.crossOrigin = "anonymous";
     script.onload = () => {
-      resolve(null);
-      script.remove(); // Clean up immediately
+      script.remove();
+      resolve();
     };
     script.onerror = () => {
-      console.error("Failed to load Google Maps script");
+      script.remove();
+      reject(new Error("Failed to load Google Maps script"));
     };
     document.head.appendChild(script);
+  }).catch(error => {
+    mapScriptPromise = null;
+    throw error;
   });
+
+  return mapScriptPromise;
 }
 
 interface MapViewProps {
@@ -124,14 +135,15 @@ export function MapView({
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
+  const [mapError, setMapError] = useState(false);
 
-  const init = usePersistFn(async () => {
+  const init = usePersistFn(async (isCancelled: () => boolean) => {
     await loadMapScript();
-    if (!mapContainer.current) {
-      console.error("Map container not found");
-      return;
-    }
-    map.current = new window.google.maps.Map(mapContainer.current, {
+    const container = mapContainer.current;
+    const maps = window.google?.maps;
+    if (isCancelled() || !container?.isConnected || !maps) return;
+
+    map.current = new maps.Map(container, {
       zoom: initialZoom,
       center: initialCenter,
       mapTypeControl: true,
@@ -140,14 +152,30 @@ export function MapView({
       streetViewControl: true,
       mapId: "DEMO_MAP_ID",
     });
-    if (onMapReady) {
-      onMapReady(map.current);
-    }
+    if (!isCancelled()) onMapReady?.(map.current);
   });
 
   useEffect(() => {
-    init();
+    let cancelled = false;
+    setMapError(false);
+    void init(() => cancelled).catch(() => {
+      if (!cancelled) {
+        setMapError(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      if (map.current && window.google?.maps?.event) {
+        window.google.maps.event.clearInstanceListeners(map.current);
+      }
+      map.current = null;
+    };
   }, [init]);
+
+  if (mapError) {
+    return <div className={cn("map-load-fallback", className)} role="status"><span>Map temporarily unavailable</span><strong>Saved approximate locations remain listed below.</strong><p>The protected map service could not load in this browser session. No location data was changed or guessed.</p></div>;
+  }
 
   return (
     <div ref={mapContainer} className={cn("w-full h-[500px]", className)} />

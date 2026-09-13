@@ -11,7 +11,7 @@ describe("Material You workspace contract", () => {
     expect(workspaceCss).toContain(".dark .workspace-shell");
     expect(workspaceCss).toContain("@media (max-width: 800px)");
     expect(workspaceCss).not.toContain(".landing-shell");
-    expect(home).toContain("Origin Tracker");
+    expect(home).toContain("Signal Furnace");
     expect(home).toContain("function Workspace");
   });
 });

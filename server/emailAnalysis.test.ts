@@ -28,6 +28,37 @@ describe(".eml analysis", () => {
     expect(result.indicators.some((indicator) => indicator.type === "domain" && indicator.value === "secure-example.test")).toBe(true);
   });
 
+  it("selects the oldest eligible public Received hop for geolocation", async () => {
+    const email = await parseEml(Buffer.from([
+      "From: sender@example.test",
+      "To: analyst@example.test",
+      "Received: from edge.example [198.51.100.24] by mx.example",
+      "Received: from sender.example [8.8.8.8] by edge.example",
+      "Subject: Relay chain",
+      "",
+      "Review this message.",
+    ].join("\r\n")));
+
+    expect(email.originatingIp).toBe("8.8.8.8");
+  });
+
+  it("records sender and recipient domains without treating email addresses as source IPs", async () => {
+    const email = await parseEml(Buffer.from([
+      "From: Vishalkumaran.V <vvishalkumaran@gmail.com>",
+      "To: analyst@example.org",
+      "Subject: Domain context",
+      "",
+      "Hello",
+    ].join("\r\n")));
+
+    expect(email.originatingIp).toBeNull();
+    expect(email.indicators).toEqual(expect.arrayContaining([
+      { type: "domain", value: "gmail.com", source: "email address domain" },
+      { type: "domain", value: "example.org", source: "email address domain" },
+    ]));
+    expect(email.indicators.some((indicator) => indicator.type === "ip")).toBe(false);
+  });
+
   it("rejects a renamed non-email payload before it can be stored as evidence", () => {
     expect(isLikelyEml(Buffer.from("not an RFC822 message"))).toBe(false);
     expect(isLikelyEml(Buffer.from("From: analyst@example.test\r\nTo: soc@example.test\r\n\r\nHello"))).toBe(true);
