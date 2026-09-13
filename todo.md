@@ -142,3 +142,6 @@
 - [x] Rework the authenticated workspace into a calmer forensic canvas with improved navigation, panel hierarchy, and readable evidence density across dashboard, map, intelligence, and case detail views.
 - [x] Audit the upgraded dark and light themes, responsive layouts, and visual control states against the supplied reference direction without breaking real evidence workflows.
 - [x] Replace the blank Google Maps script-load failure state with a visible, accessible evidence-location fallback that preserves saved coordinates and does not emit a runtime error.
+- [x] Restore and verify preview access after the reported refused connection in the workspace preview pane.
+- [x] Synchronize the latest validated Signal Furnace redesign, map fallback, and tracker status to Vishalkumaran2007/SIgnalFurnace-1.0.
+- [ ] Push the current tracker-only follow-up to Vishalkumaran2007/SIgnalFurnace-1.0 and confirm its remote contents match the latest preview-recovery and synchronization status.
