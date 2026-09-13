@@ -144,4 +144,4 @@
 - [x] Replace the blank Google Maps script-load failure state with a visible, accessible evidence-location fallback that preserves saved coordinates and does not emit a runtime error.
 - [x] Restore and verify preview access after the reported refused connection in the workspace preview pane.
 - [x] Synchronize the latest validated Signal Furnace redesign, map fallback, and tracker status to Vishalkumaran2007/SIgnalFurnace-1.0.
-- [ ] Push the current tracker-only follow-up to Vishalkumaran2007/SIgnalFurnace-1.0 and confirm its remote contents match the latest preview-recovery and synchronization status.
+- [x] Push the current tracker-only follow-up to Vishalkumaran2007/SIgnalFurnace-1.0 and confirm its remote contents match the latest preview-recovery and synchronization status.
