@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { simpleParser } from "mailparser";
 import { invokeLLM } from "./_core/llm";
 import { isPublicIpv4 } from "./geolocation";
+import { analyzeAttachments, type AttachmentAnalysis } from "./attachmentAnalysis";
 
 export type AuthResult = "pass" | "fail" | "neutral" | "missing";
 export type IndicatorType = "ip" | "domain" | "url" | "email" | "hash";
@@ -32,6 +33,7 @@ export type ParsedEmailAnalysis = {
   originatingIp: string | null;
   urls: string[];
   attachmentNames: string[];
+  attachmentAnalysis: AttachmentAnalysis[];
   indicators: Array<{ type: IndicatorType; value: string; source: string }>;
   threatScore: number;
   confidence: number;
@@ -134,7 +136,8 @@ export async function parseEml(buffer: Buffer): Promise<ParsedEmailAnalysis> {
   unique(rawHeaders.match(ipv4Pattern) || []).forEach((ip) => indicators.push({ type: "ip", value: ip, source: "email headers" }));
   unique(allEmailText.match(emailPattern) || []).forEach((email) => indicators.push({ type: "email", value: email.toLowerCase(), source: "email content" }));
   const reasons: string[] = [];
-  const attachmentNames = parsed.attachments.map((attachment) => attachment.filename || "unnamed attachment");
+  const attachmentAnalysis = analyzeAttachments(parsed.attachments.map((attachment) => ({ filename: attachment.filename, contentType: attachment.contentType, content: attachment.content, size: attachment.size })));
+  const attachmentNames = attachmentAnalysis.map((attachment) => attachment.filename);
   const findings = [...urls.flatMap(urlFindings), ...attachmentNames.flatMap(attachmentFindings)];
   let score = 0;
   if (spf === "fail") { score += 25; reasons.push("SPF failed"); }
@@ -146,6 +149,10 @@ export async function parseEml(buffer: Buffer): Promise<ParsedEmailAnalysis> {
   if (urls.length > 0) { score += Math.min(15, urls.length * 3); reasons.push(`${urls.length} link${urls.length === 1 ? "" : "s"} extracted`); }
   if (parsed.attachments.length > 0) { score += Math.min(10, parsed.attachments.length * 4); reasons.push(`${parsed.attachments.length} attachment${parsed.attachments.length === 1 ? "" : "s"} found`); }
   findings.forEach((finding) => { const weight = finding.severity === "high" ? 12 : finding.severity === "medium" ? 7 : 3; score += weight; reasons.push(`${finding.kind === "url" ? "Link" : "Attachment"} review: ${finding.detail}`); });
+  if (attachmentAnalysis.some((attachment) => attachment.attachmentVerdict === "HIGH_RISK")) {
+    score = Math.max(score, 75);
+    reasons.push("Attachment analysis found a high-risk local signal");
+  }
   score = Math.min(100, score);
   const severity = score >= 80 ? "critical" : score >= 60 ? "high" : score >= 35 ? "medium" : score > 0 ? "low" : "safe";
   const confidence = Math.min(95, Math.max(35, 35 + reasons.length * 11));
@@ -166,6 +173,7 @@ export async function parseEml(buffer: Buffer): Promise<ParsedEmailAnalysis> {
     originatingIp,
     urls,
     attachmentNames,
+    attachmentAnalysis,
     indicators: indicators.filter((indicator, index, all) => all.findIndex((candidate) => candidate.type === indicator.type && candidate.value === indicator.value) === index),
     threatScore: score,
     confidence,

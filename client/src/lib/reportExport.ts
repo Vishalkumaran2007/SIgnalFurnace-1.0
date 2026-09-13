@@ -2,12 +2,14 @@ import { jsPDF } from "jspdf";
 
 type ReportDetail = {
   investigation: { caseNumber: string; title: string; status: string; severity: string; threatScore: number; confidence: number; summary: string | null; createdAt: Date | string };
-  artifact?: { originalFilename: string; sha256: string; sender: string | null; recipient: string | null; subject: string | null; spf: string; dkim: string; dmarc: string; aiCategory: string | null; aiSummary: string | null; aiSocialEngineering: string | null; aiRecommendationsJson: string | null; aiModel: string | null } | null;
+  artifact?: { originalFilename: string; sha256: string; sender: string | null; recipient: string | null; subject: string | null; spf: string; dkim: string; dmarc: string; aiCategory: string | null; aiSummary: string | null; aiSocialEngineering: string | null; aiRecommendationsJson: string | null; aiModel: string | null; attachmentAnalysisJson?: string | null } | null;
   iocs: Array<{ type: string; value: string; source: string }>;
   reputations?: Array<{ ip: string; provider: string; abuseConfidenceScore: number; totalReports: number; numDistinctUsers: number; isWhitelisted: number; countryCode: string | null; usageType: string | null; isp: string | null; domain: string | null; enrichedAt: Date | string }>;
   urlReputations?: Array<{ url: string; provider: string; inDatabase: number; phishId: number | null; verified: number; online: number; target: string | null; feedUpdatedAt: Date | string | null }>;
   events: Array<{ eventType: string; detail: string; createdAt: Date | string }>;
   notes: Array<{ content: string; createdAt: Date | string }>;
+  evidenceChain?: Array<{ blockNumber: number; evidenceHash: string; previousHash: string; merkleRoot: string; createdAt: Date | string }>;
+  campaigns?: Array<{ name: string; iocType: string; iocValue: string; caseCount: number; firstSeen: Date | string; lastSeen: Date | string }>;
 };
 
 function safeCell(value: unknown) {
@@ -23,6 +25,7 @@ function reportFilename(detail: ReportDetail, extension: "csv" | "pdf") {
 function parseRecommendations(value: string | null | undefined) {
   try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed.map(String).join("; ") : ""; } catch { return ""; }
 }
+function parseAttachments(value: string | null | undefined) { try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed as Array<{ filename?: string; attachmentHash?: string; attachmentVerdict?: string; vtVerdict?: string | null; vtDetectionRatio?: number | null }> : []; } catch { return []; } }
 
 export function buildCaseCsv(detail: ReportDetail) {
   const rows: Array<[string, string]> = [
@@ -50,6 +53,9 @@ export function buildCaseCsv(detail: ReportDetail) {
     ["AI recommendations", parseRecommendations(detail.artifact?.aiRecommendationsJson)],
   ];
   detail.iocs.forEach((ioc) => rows.push([`IOC ${ioc.type}`, `${ioc.value} (${ioc.source})`]));
+  parseAttachments(detail.artifact?.attachmentAnalysisJson).forEach((attachment) => rows.push(["Attachment analysis", `${attachment.filename || "attachment"}: ${attachment.attachmentVerdict || "not recorded"}; SHA-256 ${attachment.attachmentHash || "not recorded"}${attachment.vtVerdict ? `; VirusTotal ${attachment.vtVerdict}` : ""}`]));
+  detail.evidenceChain?.forEach((block) => rows.push([`Evidence record #${block.blockNumber}`, `SHA-256 ${block.evidenceHash}; previous ${block.previousHash}; record root ${block.merkleRoot}`]));
+  detail.campaigns?.forEach((campaign) => rows.push(["Campaign correlation", `${campaign.name}: ${campaign.caseCount} private cases share ${campaign.iocType} ${campaign.iocValue}`]));
   detail.reputations?.forEach((reputation) => rows.push([`Reputation ${reputation.provider}`, `${reputation.ip}: abuse confidence ${reputation.abuseConfidenceScore}/100; reports ${reputation.totalReports}; reporting users ${reputation.numDistinctUsers}; whitelisted ${reputation.isWhitelisted ? "yes" : "no"}; ${[reputation.usageType, reputation.isp, reputation.domain, reputation.countryCode].filter(Boolean).join(" · ")}`]));
   detail.urlReputations?.forEach((reputation) => rows.push([`Reputation ${reputation.provider}`, `${reputation.url}: ${reputation.inDatabase ? `verified ${reputation.online ? "online " : ""}phish${reputation.phishId ? ` ID ${reputation.phishId}` : ""}${reputation.target ? ` · target ${reputation.target}` : ""}` : "no verified online match in the feed"}`]));
   detail.events.forEach((event) => rows.push([`Timeline ${new Date(event.createdAt).toLocaleString()}`, `${event.eventType}: ${event.detail}`]));
@@ -94,6 +100,9 @@ export function downloadCasePdf(detail: ReportDetail) {
   add("Authentication", `SPF ${detail.artifact?.spf || "not recorded"}; DKIM ${detail.artifact?.dkim || "not recorded"}; DMARC ${detail.artifact?.dmarc || "not recorded"}`);
   if (detail.artifact?.aiCategory) { add("AI content review", `${detail.artifact.aiCategory} (${detail.artifact.aiModel || "model not recorded"}): ${detail.artifact.aiSummary || ""}`); add("AI recommendations", parseRecommendations(detail.artifact.aiRecommendationsJson)); }
   detail.iocs.forEach((ioc) => add(`IOC ${ioc.type}`, `${ioc.value} (${ioc.source})`));
+  parseAttachments(detail.artifact?.attachmentAnalysisJson).forEach((attachment) => add("Attachment analysis", `${attachment.filename || "attachment"}: ${attachment.attachmentVerdict || "not recorded"}; SHA-256 ${attachment.attachmentHash || "not recorded"}${attachment.vtVerdict ? `; VirusTotal ${attachment.vtVerdict}` : ""}`));
+  detail.evidenceChain?.forEach((block) => add(`Evidence record #${block.blockNumber}`, `SHA-256 ${block.evidenceHash}; prior ${block.previousHash}; record root ${block.merkleRoot}`));
+  detail.campaigns?.forEach((campaign) => add("Campaign correlation", `${campaign.name}: ${campaign.caseCount} private cases share ${campaign.iocType} ${campaign.iocValue}`));
   detail.reputations?.forEach((reputation) => add(`${reputation.provider} reputation`, `${reputation.ip}: abuse confidence ${reputation.abuseConfidenceScore}/100; ${reputation.totalReports} reports from ${reputation.numDistinctUsers} users; ${reputation.isWhitelisted ? "whitelisted" : "not whitelisted"}; ${[reputation.usageType, reputation.isp, reputation.domain, reputation.countryCode].filter(Boolean).join(" · ")}`));
   detail.urlReputations?.forEach((reputation) => add(`${reputation.provider} reputation`, `${reputation.url}: ${reputation.inDatabase ? `verified ${reputation.online ? "online " : ""}phish${reputation.phishId ? `ID ${reputation.phishId}` : ""}${reputation.target ? ` · target ${reputation.target}` : ""}` : "no verified online match in the feed"}`));
   detail.events.forEach((event) => add("Timeline", `${new Date(event.createdAt).toLocaleString()} · ${event.eventType}: ${event.detail}`));

@@ -34,6 +34,8 @@ type VirusTotalAttributes = {
   last_analysis_date?: unknown;
 };
 
+export type VirusTotalFileStats = { malicious: number; suspicious: number; harmless: number; undetected: number };
+
 function numberOrZero(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0; }
 function optionalNumber(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? Math.trunc(value) : null; }
 function optionalString(value: unknown) { return typeof value === "string" && value.trim() ? value.trim() : null; }
@@ -51,4 +53,16 @@ export async function lookupVirusTotalIp(ip: string): Promise<VirusTotalReputati
   const stats = attributes.last_analysis_stats || {};
   const timestamp = optionalNumber(attributes.last_analysis_date);
   return { ip, provider: "VirusTotal", abuseConfidenceScore: 0, totalReports: 0, numDistinctUsers: 0, lastReportedAt: null, countryCode: optionalString(attributes.country), usageType: null, isp: null, domain: null, isWhitelisted: 0, malicious: numberOrZero(stats.malicious), suspicious: numberOrZero(stats.suspicious), harmless: numberOrZero(stats.harmless), undetected: numberOrZero(stats.undetected), reputationScore: optionalNumber(attributes.reputation), asn: optionalNumber(attributes.asn), asOwner: optionalString(attributes.as_owner), network: optionalString(attributes.network), lastAnalysisAt: timestamp ? new Date(timestamp * 1000) : null, rawJson: JSON.stringify(attributes) };
+}
+
+export async function lookupVirusTotalFileHash(hash: string): Promise<VirusTotalFileStats> {
+  if (!/^[a-f0-9]{64}$/i.test(hash)) throw new Error("A SHA-256 attachment hash is required for VirusTotal enrichment.");
+  const key = process.env.VIRUSTOTAL_API_KEY;
+  if (!key) throw new Error("VirusTotal is not configured.");
+  const response = await fetch(`https://www.virustotal.com/api/v3/files/${encodeURIComponent(hash)}`, { headers: { "x-apikey": key, Accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
+  if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? "VirusTotal authorization was rejected." : response.status === 404 ? "VirusTotal has no record for this attachment hash." : "VirusTotal could not complete this attachment check.");
+  const payload = await response.json() as { data?: { id?: string; attributes?: VirusTotalAttributes } };
+  if (!payload.data?.id || payload.data.id.toLowerCase() !== hash.toLowerCase()) throw new Error("VirusTotal returned an unexpected attachment response.");
+  const stats = payload.data.attributes?.last_analysis_stats || {};
+  return { malicious: numberOrZero(stats.malicious), suspicious: numberOrZero(stats.suspicious), harmless: numberOrZero(stats.harmless), undetected: numberOrZero(stats.undetected) };
 }

@@ -8,4 +8,5 @@ export const ENV = {
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   ipGeolocationApiKey: process.env.IPGEOLOCATION_API_KEY ?? "",
+  ipinfoToken: process.env.IPINFO_TOKEN ?? "",
 };

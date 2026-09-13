@@ -1,4 +1,4 @@
-import { double, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { double, int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -50,6 +50,7 @@ export const emailArtifacts = mysqlTable("email_artifacts", {
   originatingIp: varchar("originatingIp", { length: 64 }),
   urlsJson: text("urlsJson"),
   attachmentNamesJson: text("attachmentNamesJson"),
+  attachmentAnalysisJson: text("attachmentAnalysisJson"),
   findingsJson: text("findingsJson"),
   aiCategory: varchar("aiCategory", { length: 80 }),
   aiSummary: text("aiSummary"),
@@ -82,7 +83,66 @@ export const ipGeolocations = mysqlTable("ip_geolocations", {
   latitude: double("latitude"),
   longitude: double("longitude"),
   provider: varchar("provider", { length: 128 }).notNull(),
+  postal: varchar("postal", { length: 32 }),
+  timezone: varchar("timezone", { length: 128 }),
+  asn: varchar("asn", { length: 64 }),
+  ispName: varchar("ispName", { length: 512 }),
+  organization: varchar("organization", { length: 512 }),
+  isVpn: int("isVpn").notNull().default(0),
+  isTor: int("isTor").notNull().default(0),
+  isHosting: int("isHosting").notNull().default(0),
+  isMobile: int("isMobile").notNull().default(0),
+  isSuspicious: int("isSuspicious").notNull().default(0),
+  infrastructureLabel: varchar("infrastructureLabel", { length: 64 }),
+  abuseScore: int("abuseScore").notNull().default(0),
+  abuseReports: int("abuseReports").notNull().default(0),
+  lastReportedAt: timestamp("lastReportedAt"),
+  precisionConfidence: int("precisionConfidence").notNull().default(0),
+  sourcesUsedJson: text("sourcesUsedJson"),
+  sourcesAgreed: int("sourcesAgreed").notNull().default(0),
   enrichedAt: timestamp("enrichedAt").defaultNow().notNull(),
+});
+
+export const evidenceChain = mysqlTable("evidence_chain", {
+  id: int("id").autoincrement().primaryKey(),
+  caseId: int("caseId").notNull(),
+  blockNumber: int("blockNumber").notNull(),
+  evidenceHash: varchar("evidenceHash", { length: 64 }).notNull(),
+  previousHash: varchar("previousHash", { length: 64 }).notNull(),
+  merkleRoot: varchar("merkleRoot", { length: 64 }).notNull(),
+  analystId: int("analystId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const iocRecords = mysqlTable("iocs", {
+  id: int("id").autoincrement().primaryKey(),
+  caseId: int("caseId").notNull(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", ["ip", "domain", "url", "email", "hash"]).notNull(),
+  value: varchar("value", { length: 2048 }).notNull(),
+  firstSeen: timestamp("firstSeen").defaultNow().notNull(),
+  lastSeen: timestamp("lastSeen").defaultNow().notNull(),
+  occurrenceCount: int("occurrenceCount").notNull().default(1),
+});
+
+export const campaigns = mysqlTable("campaigns", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  iocType: mysqlEnum("iocType", ["ip", "domain", "url", "email", "hash"]).notNull(),
+  iocValue: varchar("iocValue", { length: 2048 }).notNull(),
+  caseIds: json("caseIds").$type<number[]>().notNull(),
+  caseCount: int("caseCount").notNull().default(0),
+  firstSeen: timestamp("firstSeen").defaultNow().notNull(),
+  lastSeen: timestamp("lastSeen").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const ipGeoCache = mysqlTable("ip_geo_cache", {
+  ip: varchar("ip", { length: 64 }).primaryKey(),
+  resultJson: json("resultJson").$type<Record<string, unknown>>().notNull(),
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
 });
 
 export const ipReputations = mysqlTable("ip_reputations", {
@@ -149,6 +209,14 @@ export const investigationNotes = mysqlTable("investigation_notes", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const assistantChatMessages = mysqlTable("assistant_chat_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  role: mysqlEnum("role", ["user", "assistant"]).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Investigation = typeof investigations.$inferSelect;
@@ -157,3 +225,7 @@ export type Indicator = typeof indicators.$inferSelect;
 export type IpGeolocation = typeof ipGeolocations.$inferSelect;
 export type IpReputation = typeof ipReputations.$inferSelect;
 export type UrlReputation = typeof urlReputations.$inferSelect;
+export type EvidenceChainBlock = typeof evidenceChain.$inferSelect;
+export type IocRecord = typeof iocRecords.$inferSelect;
+export type Campaign = typeof campaigns.$inferSelect;
+export type AssistantChatMessage = typeof assistantChatMessages.$inferSelect;

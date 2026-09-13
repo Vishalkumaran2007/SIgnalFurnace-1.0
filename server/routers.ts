@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { invokeLLM } from "./_core/llm";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { addInvestigationNote, enrichInvestigationGeolocation, enrichInvestigationPhishTank, enrichInvestigationReputation, enrichInvestigationVirusTotal, findSimilarInvestigations, getDashboardSummary, getInvestigation, listAdministrativeUsers, listGeolocations, listIndicators, listInvestigations, listIpReputations, recordInvestigationEvent, rerunInvestigationAiReview, saveAnalysis, setAdministrativeUserRole, updateInvestigationStatus } from "./db";
+import { addInvestigationNote, enrichInvestigationAttachmentVirusTotal, enrichInvestigationGeolocation, enrichInvestigationPhishTank, enrichInvestigationReputation, enrichInvestigationVirusTotal, findSimilarInvestigations, getDashboardSummary, getInvestigation, listAdministrativeUsers, listAssistantChatHistory, listCampaigns, listGeolocations, listIndicators, listInvestigations, listIpReputations, recordInvestigationEvent, rerunInvestigationAiReview, saveAnalysis, saveAssistantChatMessage, setAdministrativeUserRole, updateInvestigationStatus, verifyInvestigationEvidenceChain } from "./db";
 import { analyzeEmailContentWithAi, applyAiContentAssessment, isLikelyEml, parseEml } from "./emailAnalysis";
 import { storagePut } from "./storage";
 import { notifyOwner } from "./_core/notification";
@@ -12,6 +12,7 @@ import { z } from "zod";
 
 const guideViews = ["dashboard", "analyzer", "intelligence", "geolocation", "forensics", "assistant", "reports", "settings"] as const;
 const guideViewSchema = z.enum(guideViews);
+const requirementsScope = /\b(sih|signal furnace|origin tracker|requirement|email|eml|msg|phish|security|evidence|chain|blockchain|attachment|location|\bip\b|ioc|campaign|map|report|dashboard|threat|abuseipdb|virustotal|phishtank|privacy|authentication|oauth|case|analyst|header|spf|dkim|dmarc|url|score|workflow|feature)\b/i;
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -28,68 +29,40 @@ export const appRouter = router({
   }),
 
   guide: router({
+    history: protectedProcedure.query(({ ctx }) => listAssistantChatHistory(ctx.user.id)),
     ask: protectedProcedure
       .input(z.object({ question: z.string().trim().min(1).max(500), currentView: guideViewSchema }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        await saveAssistantChatMessage(ctx.user.id, "user", input.question);
+        if (!requirementsScope.test(input.question)) {
+          const reply = "I can answer only SIH26106 requirements and Signal Furnace feature questions. Ask about email analysis, evidence, attachments, IP location, campaigns, reports, privacy, or a listed requirement.";
+          await saveAssistantChatMessage(ctx.user.id, "assistant", reply);
+          return { reply, navigateTo: null };
+        }
+        const history = await listAssistantChatHistory(ctx.user.id);
         const navigationRules: Array<{ view: typeof guideViews[number]; matches: RegExp }> = [
           { view: "analyzer", matches: /\b(email check|check an email|analyzer|email page)\b/i },
           { view: "dashboard", matches: /\b(dashboard|home|overview)\b/i },
-          { view: "intelligence", matches: /\b(known threats|threats|intelligence)\b/i },
-          { view: "geolocation", matches: /\b(location|map|places)\b/i },
-          { view: "forensics", matches: /\b(case details|case page|evidence)\b/i },
-          { view: "assistant", matches: /\b(ai guide|ai help|guide page)\b/i },
+          { view: "intelligence", matches: /\b(known threats|threats|intelligence|ioc|campaign)\b/i },
+          { view: "geolocation", matches: /\b(location|map|places|ip lookup)\b/i },
+          { view: "forensics", matches: /\b(case details|case page|evidence|attachment|chain)\b/i },
           { view: "reports", matches: /\b(reports?|report page)\b/i },
           { view: "settings", matches: /\b(settings|connect data|data source)\b/i },
         ];
         const requestedNavigation = navigationRules.find((rule) => rule.matches.test(input.question));
-        if (requestedNavigation) {
-          return {
-            reply: `Opening the ${requestedNavigation.view === "analyzer" ? "email check" : requestedNavigation.view} page. I can only navigate within this website.`,
-            navigateTo: requestedNavigation.view,
-          };
-        }
-
         const response = await invokeLLM({
-          maxTokens: 260,
-          messages: [
-            {
-              role: "system",
-              content: `You are the Threat OS Guide. You only explain this website and, if asked, select one approved screen to open. You cannot inspect emails, cases, files, reports, accounts, or any live data. You cannot upload, download, create, edit, delete, send, block, change settings, or operate anything outside navigation. Use short, simple English. If a request is outside these limits, politely say so and offer safe navigation help. Return JSON only with exactly: reply (string) and navigateTo (one of ${guideViews.join(", ")} or null).`,
-            },
-            {
-              role: "user",
-              content: `The user is on ${input.currentView}. Their question is: ${input.question}`,
-            },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "guide_response",
-              strict: true,
-              schema: {
-                type: "object",
-                properties: {
-                  reply: { type: "string" },
-                  navigateTo: { anyOf: [{ type: "string", enum: [...guideViews] }, { type: "null" }] },
-                },
-                required: ["reply", "navigateTo"],
-                additionalProperties: false,
-              },
-            },
-          },
+          model: "gemini-3-flash-preview",
+          maxTokens: 440,
+          messages: [{ role: "system", content: `You are the Signal Furnace Requirements Assistant. Answer only SIH26106 requirements and this application's documented capabilities, limits, privacy rules, and safe workflows. You cannot inspect emails, cases, files, reports, accounts, or any live data. You cannot upload, download, create, edit, delete, send, block, change settings, or operate actions. Use short, simple English. Do not answer general knowledge questions. Do not claim that a domain identifies a device, that IP location is exact, that an evidence chain is a public blockchain, or that an unavailable provider ran. Return JSON only with reply (string) and navigateTo (one of ${guideViews.join(", ")} or null).` }, { role: "user", content: `Current page: ${input.currentView}\nRecent private conversation (not case data):\n${history.slice(-8).map((message) => `${message.role}: ${message.content}`).join("\n")}\n\nQuestion: ${input.question}` }],
+          response_format: { type: "json_schema", json_schema: { name: "requirements_assistant_response", strict: true, schema: { type: "object", properties: { reply: { type: "string" }, navigateTo: { anyOf: [{ type: "string", enum: [...guideViews] }, { type: "null" }] } }, required: ["reply", "navigateTo"], additionalProperties: false } } },
         });
-
+        const fallback = { reply: "I can answer SIH26106 requirement questions. Please ask about a feature, security boundary, or workflow.", navigateTo: requestedNavigation?.view || null };
         const content = response.choices[0]?.message.content;
-        if (typeof content !== "string") {
-          return { reply: "I can guide you to a page, but I could not answer right now.", navigateTo: null };
-        }
-
-        try {
-          const parsed = z.object({ reply: z.string().min(1).max(800), navigateTo: guideViewSchema.nullable() }).parse(JSON.parse(content));
-          return parsed;
-        } catch {
-          return { reply: "I can explain the pages or help you move around this website. Please try again.", navigateTo: null };
-        }
+        let output = fallback;
+        try { if (typeof content === "string") output = z.object({ reply: z.string().min(1).max(900), navigateTo: guideViewSchema.nullable() }).parse(JSON.parse(content)); } catch { /* retain safe fallback */ }
+        if (requestedNavigation) output.navigateTo = requestedNavigation.view;
+        await saveAssistantChatMessage(ctx.user.id, "assistant", output.reply);
+        return output;
       }),
   }),
 
@@ -97,6 +70,7 @@ export const appRouter = router({
     list: protectedProcedure.query(({ ctx }) => listInvestigations(ctx.user.id)),
     indicators: protectedProcedure.query(({ ctx }) => listIndicators(ctx.user.id)),
     locations: protectedProcedure.query(({ ctx }) => listGeolocations(ctx.user.id)),
+    campaigns: protectedProcedure.query(({ ctx }) => listCampaigns(ctx.user.id)),
     reputations: protectedProcedure.query(({ ctx }) => listIpReputations(ctx.user.id)),
     dashboard: protectedProcedure.query(({ ctx }) => getDashboardSummary(ctx.user.id)),
     detail: protectedProcedure.input(z.object({ investigationId: z.number().int().positive() })).query(async ({ ctx, input }) => {
@@ -117,6 +91,12 @@ export const appRouter = router({
     }),
     enrichVirusTotal: protectedProcedure.input(z.object({ investigationId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       try { return await enrichInvestigationVirusTotal(ctx.user.id, input.investigationId); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "The source IP reputation could not be checked." }); }
+    }),
+    enrichAttachmentVirusTotal: protectedProcedure.input(z.object({ investigationId: z.number().int().positive(), attachmentHash: z.string().regex(/^[a-f0-9]{64}$/i) })).mutation(async ({ ctx, input }) => {
+      try { return await enrichInvestigationAttachmentVirusTotal(ctx.user.id, input.investigationId, input.attachmentHash); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "The attachment hash could not be checked." }); }
+    }),
+    verifyEvidenceChain: protectedProcedure.input(z.object({ investigationId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+      try { return await verifyInvestigationEvidenceChain(ctx.user.id, input.investigationId); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "The evidence chain could not be verified." }); }
     }),
     enrichPhishTank: protectedProcedure.input(z.object({ investigationId: z.number().int().positive(), url: z.string().url().max(2048) })).mutation(async ({ ctx, input }) => {
       try { return await enrichInvestigationPhishTank(ctx.user.id, input.investigationId, input.url); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "The extracted URL could not be checked." }); }

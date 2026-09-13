@@ -145,3 +145,11 @@
 - [x] Restore and verify preview access after the reported refused connection in the workspace preview pane.
 - [x] Synchronize the latest validated Signal Furnace redesign, map fallback, and tracker status to Vishalkumaran2007/SIgnalFurnace-1.0.
 - [x] Push the current tracker-only follow-up to Vishalkumaran2007/SIgnalFurnace-1.0 and confirm its remote contents match the latest preview-recovery and synchronization status.
+- [x] Replace AI Help with a requirements-only chat assistant that refuses unrelated general questions, keeps history private to the signed-in analyst, and cannot alter evidence or settings.
+- [x] Finish the progressive investigation workbench with an expandable timeline and a dedicated non-destructive case-action sidebar.
+- [x] Add attachment-risk analysis with safe local signals, persisted attachment analysis, report coverage, and analyst-approved per-hash VirusTotal enrichment.
+- [x] Add tamper-evident evidence-chain records with verification, case visibility, and report coverage using sequential hashes rather than claiming a public blockchain.
+- [x] Add IOC-based campaign correlation with private case membership, campaign views, and no fabricated associations.
+- [x] Display saved multi-source geolocation provenance, cache status, and approximate-location boundaries in the Location Map UI.
+- [x] Display encrypted provider availability in geolocation results while keeping IP-API free-plan HTTP access disabled.
+- [ ] Add migrations, tests, browser control checks, and GitHub synchronization for the completed requirements-assistant and forensic-workspace upgrade.

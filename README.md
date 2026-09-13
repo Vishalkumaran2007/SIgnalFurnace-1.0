@@ -1,172 +1,79 @@
-<div align="center">
+# Origin Tracker
 
-# ◉ ORIGIN TRACKER
+> **SIH26106 — AI-Powered Email Threat Detection, GeoLocation and Forensic Intelligence Platform**
 
-### **AI-powered email threat detection, geolocation, and forensic intelligence**
-
-<p>
-  <strong>SIH26106</strong> · Evidence-first SOC workbench · Real data only
-</p>
-
-<p>
-  <a href="https://sih26106cybe-8m79cqnn.manus.space"><strong>Open the live workspace</strong></a>
-  ·
-  <a href="#quick-start">Run locally</a>
-  ·
-  <a href="#investigation-flow">Explore the workflow</a>
-</p>
-
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=0B1020)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![tRPC](https://img.shields.io/badge/API-tRPC_11-2596BE)](https://trpc.io/)
-[![Evidence](https://img.shields.io/badge/Analysis-real_evidence_only-0F766E)](#responsible-analysis)
-[![Status](https://img.shields.io/badge/Status-active_development-F2C94C)](#current-boundaries)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=0B1020)](https://react.dev/)
+[![License](https://img.shields.io/badge/License-MIT-0B7285)](LICENSE)
+[![Evidence model](https://img.shields.io/badge/Analysis-Evidence--only-0F766E)](#responsible-analysis-and-data-boundaries)
 
-> **What happened? What evidence supports it? What is still uncertain? What should the analyst do next?**
+**Origin Tracker** is a private security-operations workspace for examining authenticated `.eml` evidence. It combines structural email parsing, bounded server-side AI review, analyst-approved intelligence checks, approximate source-IP mapping, timelines, notes, and case exports in one clear workflow. The platform is designed to help analysts decide what to review next; it does **not** send email, execute attachments, or present reputation results that it has not actually retrieved.
 
-</div>
+**Live workspace:** [Open Origin Tracker](https://sih26106cybe-8m79cqnn.manus.space) · **Repository:** [Vishalkumaran2007/SIH2K26](https://github.com/Vishalkumaran2007/SIH2K26)
 
 ---
 
-## Why Origin Tracker?
+## The investigation flow
 
-Security investigations often fail when evidence, interpretation, and external intelligence are mixed together. Origin Tracker keeps them separate. It gives an authorized analyst one private workspace to upload a real `.eml` file, inspect its structure, understand explainable risk signals, review a bounded AI interpretation, approve selected intelligence checks, and preserve the complete investigation timeline.
-
-It is not a generic dashboard, chatbot, email sender, malware sandbox, or attribution engine. It is a **forensic decision-support system** that makes uncertainty visible instead of hiding it behind invented data.
-
-<details>
-<summary><strong>Click to see the platform promise</strong></summary>
-
-<br />
-
-| Promise | How the platform keeps it honest |
-|---|---|
-| **Evidence first** | Cases begin with uploaded or connected evidence rather than demo counters or fictional incidents. |
-| **Explainable analysis** | Local findings include the signal, source location, severity, and reason. |
-| **Bounded AI** | The model reviews authorized email evidence and returns validated structured output. |
-| **Analyst approval** | External provider and geolocation checks require an explicit selection and approval. |
-| **Privacy by default** | Cases, original emails, notes, reports, and provider results remain private to authorized users. |
-| **Safe failure** | Missing indicators, invalid AI output, blocked IP ranges, and unavailable providers become visible safe states. |
-
-</details>
-
-## Investigation flow
-
-```mermaid
-flowchart LR
-    A[Sign in] --> B[Upload real .eml]
-    B --> C[Validate and store privately]
-    C --> D[RFC822 parsing]
-    D --> E[Extract headers, URLs, IPs, attachments]
-    E --> F[Deterministic risk signals]
-    F --> G[Bounded server-side AI review]
-    G --> H[Private case workspace]
-    H --> I{Analyst approves indicator?}
-    I -->|Yes| J[Threat intelligence or approximate GeoIP]
-    I -->|No| K[Keep enrichment unqueried]
-    J --> L[Timeline, notes, status, report]
-    K --> L
+```text
+Private .eml evidence
+        │
+        ▼
+RFC 822 parsing + local structural signals
+        │
+        ├── Headers, authentication results, links, IPs, attachment names
+        ├── SHA-256 evidence identity and timeline events
+        └── Bounded, evidence-only AI review
+        │
+        ▼
+Private case workspace
+        │
+        ├── Analyst notes, status, similar-case comparison, CSV/PDF exports
+        └── Explicit analyst approval for permitted provider checks
+        │
+        ▼
+Evidence-backed decision support
 ```
 
-<a id="investigation-flow"></a>
+The interface deliberately separates the navigation-only **AI Guide** from case analysis. The guide can explain pages and open approved screens, whereas the case reviewer runs on the server with only the selected email evidence and saves its provenance to the private case timeline.
 
-### The analyst journey
+## What the platform delivers
 
-| Stage | What happens | Evidence preserved |
+| Area | Delivered capability | Important boundary |
 |---|---|---|
-| **1. Sign in** | OAuth protects the workspace and scopes cases to the authorized user. | User identity and access boundary |
-| **2. Submit evidence** | A real RFC822 `.eml` file is validated, privately stored, and hashed. | Original file metadata and SHA-256 identity |
-| **3. Understand structure** | Trusted headers are separated from body content at the first blank-line boundary. | Sender, recipient, reply-to, return-path, received hops, auth results |
-| **4. Score locally** | Explainable rules detect structural, URL, attachment, and authentication signals. | Rule IDs, severity, source location, explanations |
-| **5. Review with AI** | A server-side model produces a bounded, evidence-linked interpretation. | Category, score, confidence, summary, model provenance |
-| **6. Enrich selectively** | The analyst chooses an eligible indicator before a provider or map request. | Selected value, approval event, response, provider timestamp |
-| **7. Close the loop** | Notes, status changes, similar-case signals, timelines, and reports complete the case. | Full investigation history and limitations |
+| **Protected evidence ingestion** | Signed-in analysts upload an `.eml` file, which is validated as RFC 822 evidence, stored privately, hashed, and linked to a new case. | `.msg` parsing is intentionally not connected yet. |
+| **Email forensics** | Sender/recipient metadata, headers, SPF/DKIM/DMARC result text, reply-to, return-path, received IPs, URLs, email indicators, and attachment names are extracted when structurally present. | Header-like text after the RFC body boundary is treated as body content, not trusted metadata. |
+| **Local risk signals** | The platform flags risky URL forms and attachment-name patterns, including raw-IP links, URL shorteners, non-standard ports, executable extensions, archives, macro-enabled files, and double extensions. | Local signals are not malware execution or external reputation claims. |
+| **Bounded AI review** | A server-only Gemini structured assessment classifies supplied email evidence, summarizes observed social-engineering cues, and records a bounded recommendation set. | The review does not browse links, execute files, validate DNS, or invent external intelligence. |
+| **Threat intelligence** | Analysts may approve distinct AbuseIPDB and VirusTotal public-IP checks, or match one extracted URL against the PhishTank verified-online feed. Provider evidence is saved privately with the case. | The selected indicator—not the email body, attachments, or account data—is the only intended provider input. |
+| **Location and map** | An analyst-approved approximate source-IP lookup can be persisted and displayed on a private map with supported marker pins and automatic viewport fitting when more than one location exists. | Private, loopback, link-local, invalid, and RFC 5737 documentation-only IPs are blocked before external lookup; IP results are not exact device tracking. |
+| **Forensic workflow** | Private cases include severity, score, confidence, evidence metadata, IOCs, events, notes, status, similar-case signals, CSV, and PDF exports. | Saved cases are scoped to the signed-in analyst. |
+| **Operations controls** | OAuth protection, light/dark themes, administrator role controls, a requirements checklist, and a project-owner notification path for completed high-risk cases are included. | The owner alert is non-blocking and activates only when a completed case reaches the configured score threshold. |
 
-## Capability map
+## Responsible analysis and data boundaries
 
-<details open>
-<summary><strong>Email forensics</strong></summary>
+Origin Tracker is built around **evidence discipline**. The application only shows records saved from uploaded or connected evidence; it does not seed demonstration cases, reputation responses, ratings, or location records.
 
-The first protected workflow supports `.eml` evidence. The parser extracts sender and recipient fields, trusted headers, SPF/DKIM/DMARC result text, received IPs, URLs, hostnames, attachment names, and structural findings when those values are present in the message.
+> **Analyst approval is required before every external enrichment.** AbuseIPDB and VirusTotal operate only on an extracted, eligible public source IP. PhishTank compares one selected extracted URL with a bounded cached verified-online feed. The email body, attachments, and account details are not sent through these provider paths.
 
-> `.msg` is not labelled complete until a safe parser, isolation strategy, deployment dependency review, and tests exist.
+The external-IP guard also rejects documentation-only RFC 5737 ranges such as `192.0.2.0/24`, `198.51.100.0/24`, and `203.0.113.0/24`. This is important for safe test-email handling: test addresses remain case evidence but cannot accidentally trigger a real map or reputation request.
 
-</details>
-
-<details open>
-<summary><strong>Deterministic risk analysis</strong></summary>
-
-Local analysis runs before AI or external enrichment. It can identify authentication failures, sender and reply-to mismatches, received-route anomalies, coercive language, suspicious URL forms, raw-IP links, unusual ports, risky attachment names, malformed headers, and ineligible IP ranges.
-
-Every finding should remain understandable without an external provider or AI service.
-
-</details>
-
-<details open>
-<summary><strong>Bounded AI review</strong></summary>
-
-The AI reviewer receives only the authorized saved email evidence. It returns validated structured output such as a controlled threat category, risk score, confidence, plain-English explanation, observed social-engineering signals, and recommended analyst next steps.
-
-The model does not browse links, execute attachments, validate DNS, claim exact attribution, or turn missing evidence into a fact. A truncated or invalid response preserves local analysis and exposes a protected retry path.
-
-</details>
-
-<details open>
-<summary><strong>Analyst-approved intelligence</strong></summary>
-
-The platform keeps external enrichment behind a shared server-side approval boundary:
-
-| Path | Eligible input | Boundary |
-|---|---|---|
-| **AbuseIPDB** | One selected eligible public IP | No private, reserved, loopback, link-local, multicast, or documentation-only ranges |
-| **VirusTotal** | One selected eligible public IP | The selected indicator is the intended provider input |
-| **PhishTank** | One selected extracted URL | Bounded verified-online feed comparison with feed provenance |
-| **Approximate GeoIP** | One approved eligible public IP | Location is approximate, not physical attribution |
-
-</details>
+The AI review is intentionally bounded. It receives only saved email fields, treats content instructions as untrusted, requests strict JSON, applies size limits to persisted fields, and records the model name in the evidence artifact and timeline. If a previous saved case is missing a complete AI result, its owner can re-run that bounded assessment without uploading duplicate evidence.
 
 ## Architecture
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│ Authenticated React + TypeScript investigation workspace            │
-│ Dashboard · Cases · Evidence · Intelligence · Location · Reports    │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                │ typed tRPC
-┌───────────────────────────────▼─────────────────────────────────────┐
-│ Express server                                                      │
-│ OAuth · authorization · RFC822 parser · scoring · AI · provider gate │
-└───────────────┬─────────────────┬─────────────────┬─────────────────┘
-                │                 │                 │
-        ┌───────▼───────┐ ┌──────▼──────┐ ┌────────▼─────────┐
-        │ MySQL / TiDB  │ │ Private S3 │ │ Approved services │
-        │ Drizzle ORM   │ │ evidence   │ │ AI · maps · intel │
-        └───────────────┘ └─────────────┘ └──────────────────┘
-```
-
 | Layer | Technology | Responsibility |
 |---|---|---|
-| Client | React 19, TypeScript, Tailwind CSS, TanStack Query | Responsive analyst workspace and typed data access |
-| API | Express, tRPC, Zod | Protected procedures, validation, authorization, and integrations |
-| Database | MySQL/TiDB with Drizzle ORM | Users, cases, artifacts, indicators, events, notes, and enrichment metadata |
-| Evidence storage | Private S3-compatible storage | Original `.eml` bytes and generated report files |
-| Identity | Manus OAuth | Protected sessions and user-scoped case access |
-| AI and maps | Server-side built-in services | Structured email review and saved approximate location visualization |
+| **Client** | React 19, TypeScript, Tailwind CSS, TanStack Query, tRPC client | Analyst workspace, responsive light/dark interface, approval controls, maps, and exports. |
+| **Server** | Express, tRPC, Zod | Protected procedures, authorization checks, bounded AI calls, case workflow, and provider gates. |
+| **Database** | MySQL/TiDB with Drizzle ORM | Users, investigations, artifacts, indicators, events, notes, locations, and provider evidence. |
+| **Evidence storage** | Platform S3-style storage | Original `.eml` bytes are kept outside relational records; the database holds metadata and a storage reference. |
+| **Identity** | Manus OAuth | Signed-in, per-user workspace and role-aware administrative procedures. |
+| **AI and map services** | Server-side built-in LLM proxy and Maps integration | Structured evidence review and private saved-location visualization. |
 
-## Quick start
+## Run locally
 
-<a id="quick-start"></a>
-
-The production workspace runs in a full-stack environment with OAuth, database, private storage, and server-side service configuration. A local installation needs equivalent environment values before protected workflows can operate.
-
-```bash
-git clone https://github.com/Vishalkumaran2007/SIgnalFurnace-1.0.git
-cd SIgnalFurnace-1.0
-pnpm install
-pnpm dev
-```
-
-For the complete application source, use the active implementation repository:
+The production project is configured for the Manus full-stack environment, which injects OAuth, storage, database, and built-in service settings. A local deployment needs equivalent values before the protected flows can work.
 
 ```bash
 git clone https://github.com/Vishalkumaran2007/SIH2K26.git
@@ -175,7 +82,7 @@ pnpm install
 pnpm dev
 ```
 
-Useful development commands in the implementation repository:
+Use the following commands during development:
 
 ```bash
 pnpm test       # deterministic Vitest suite
@@ -184,76 +91,52 @@ pnpm build      # production client and server build
 pnpm db:push    # generate and apply schema migration in a configured environment
 ```
 
-> Never commit `.env` files, OAuth secrets, database URLs, provider keys, uploaded email evidence, or private provider responses.
+| Configuration group | Required for | Examples of keys to configure |
+|---|---|---|
+| Database and sessions | Cases, users, evidence metadata, and login sessions | `DATABASE_URL`, `JWT_SECRET` |
+| OAuth | Protected workspace sign-in | `VITE_APP_ID`, `OAUTH_SERVER_URL`, `VITE_OAUTH_PORTAL_URL` |
+| Built-in services | Server-side AI, storage, and notifications | `BUILT_IN_FORGE_API_URL`, `BUILT_IN_FORGE_API_KEY` |
+| Provider enrichment | Optional, analyst-approved IP intelligence | `ABUSEIPDB_API_KEY`, `VIRUSTOTAL_API_KEY` |
 
-## Current boundaries
+Never commit `.env` files, credentials, uploaded email evidence, or provider responses outside the intended private storage and database paths.
 
-Origin Tracker reports capabilities based on working code and validated evidence, not on a checkbox alone.
+## Validation snapshot
 
-| Available in the validated build | Deliberately bounded or still requiring additional evidence/work |
+The current validation record is maintained in [`functional_mvp_validation.md`](functional_mvp_validation.md). The latest deterministic run completed with **22 passing test files and 27 passing tests**; three opt-in live-provider tests are skipped in the ordinary suite. TypeScript checking and the production build also pass.
+
+Two user-authorized `.eml` files have been processed through the protected browser workflow. One routine project-update email confirmed benign/uncertain low-risk case persistence and the bounded-AI retry repair. A second test email confirmed phishing-oriented AI review, private evidence/timeline storage, URL extraction, PhishTank feed persistence, and blocking of documentation-only IPs. The second file did **not** exercise a high-risk alert or IP-provider/map happy path because its RFC 5737 test addresses are deliberately non-routable and its structural score remained below the alert threshold.
+
+| Verified in the current build | Still requires separately authorized real evidence |
 |---|---|
-| Protected `.eml` ingestion and private evidence storage | `.msg` parsing |
-| RFC822 structure extraction and SHA-256 evidence identity | Live DNS/domain reputation validation |
-| Deterministic local signals | Malware execution or sandbox analysis |
-| Bounded server-side AI review with retry handling | Exact attacker attribution or threat-actor certainty |
-| Analyst-approved AbuseIPDB and VirusTotal paths | High-risk alert path requires an authorized qualifying email |
-| PhishTank verified-online feed comparison | Real public-IP/map happy path requires an authorized routable indicator |
-| Private case timeline, notes, status, CSV, and PDF reports | Synthetic or decorative graph/map/heatmap data |
-| Documentation-only IP blocking | Any provider call without explicit analyst approval |
+| `.eml` ingestion, private evidence storage, forensic timeline, notes, scoring, bounded AI, provider gates, documentation-IP blocking, PhishTank URL comparison, reports, dashboard, and requirements status | A correctly formatted email with a real public source IP and a score of at least `60` is needed to exercise the geolocation/AbuseIPDB/VirusTotal happy paths and high-risk owner-alert timeline. |
 
-## Responsible analysis
-
-> **Real data only.** The project must never seed fake cases, fake alerts, fake locations, fake provider responses, fake users, fake reviews, or fictional statistics.
-
-All uploaded email, URLs, attachments, web pages, and provider responses are treated as untrusted data. Instructions contained inside evidence are not application instructions. API keys and session secrets stay server-side. AI output is an interpretation of available evidence, not proof. Provider and geolocation results are shown with their source, time, confidence, and limitations.
-
-The shared indicator gate rejects private, loopback, link-local, multicast, reserved, and RFC 5737 documentation ranges before an external lookup. This means test addresses can remain useful forensic evidence without accidentally being sent to a live provider or map service.
-
-## Visual identity
-
-Origin Tracker is built around the journey of a cyber investigation:
+## Repository guide
 
 ```text
-Source  →  Detection  →  Investigation  →  Intelligence
-  ◉          ◌              ◎                  ✦
+client/                 React workspace, pages, components, styles, exports
+server/                 tRPC procedures, email parsing, case persistence, integrations
+drizzle/                Schema and database migrations
+functional_mvp_validation.md
+                        Evidence-based validation record
+integration_sources.md  Official provider references and implementation notes
+todo.md                 Transparent implementation and validation tracker
 ```
-
-The authenticated workspace uses a Material You-inspired system with paired light and dark themes, readable evidence panels, clear hierarchy, responsive stacking, and restrained motion. The logo concept combines a source pin, radar sweep, connected intelligence nodes, and an AI core rather than relying on generic shields or locks.
-
-## Repository map
-
-| Path | Purpose |
-|---|---|
-| `client/` | React workspace, pages, components, styles, maps, and exports |
-| `server/` | tRPC procedures, parsing, persistence, authorization, AI, and integrations |
-| `drizzle/` | SQL schema and migrations |
-| `functional_mvp_validation.md` | Evidence-based validation record |
-| `integration_sources.md` | Provider references and implementation notes |
-| `todo.md` | Transparent implementation and validation tracker |
-| `SIH26106_improved_master_prompt.md` | Implementation blueprint and acceptance direction |
 
 ## Team
 
-**Vishalkumaran V** — engineering, AI, software, and electronics contributor.
+The project carries the **Origin Tracker** identity: a location pin, radar sweep, connected intelligence nodes, and an AI core represent the journey from source to detection, investigation, and intelligence.
 
-- Portfolio: [vishalkumaran2007.github.io/Portfolio](https://vishalkumaran2007.github.io/Portfolio/)
-- Implementation repository: [Vishalkumaran2007/SIH2K26](https://github.com/Vishalkumaran2007/SIH2K26)
-- Fresh documentation repository: [Vishalkumaran2007/SIgnalFurnace-1.0](https://github.com/Vishalkumaran2007/SIgnalFurnace-1.0)
+**Vishalkumaran V** — engineering, AI, software, and electronics contributor. View the public portfolio at [vishalkumaran2007.github.io/Portfolio](https://vishalkumaran2007.github.io/Portfolio/).
 
-## References
+## Provider references
+
+The platform uses provider capabilities only within the approval boundaries described above. Consult the official documentation before modifying an integration or its rate-limit behavior. [1] [2] [3] [4]
 
 [1]: https://docs.abuseipdb.com/#introduction "AbuseIPDB API documentation"
 [2]: https://docs.virustotal.com/reference/ip-info "VirusTotal IP object API documentation"
 [3]: https://www.phishtank.net/developer_info.php "PhishTank developer information"
 [4]: https://ipwhois.io/documentation "IPWHOIS API documentation"
-[5]: https://www.rfc-editor.org/rfc/rfc5737 "RFC 5737 documentation address ranges"
-
-Provider and protocol behavior should be checked against the official references before changing integrations or rate-limit handling. [1] [2] [3] [4] [5]
 
 ---
 
-<div align="center">
-
-**Built for evidence-led email investigations, not synthetic threat claims.**
-
-</div>
+<p align="center"><strong>Built for evidence-led email investigations, not synthetic threat claims.</strong></p>
