@@ -152,4 +152,4 @@
 - [x] Add IOC-based campaign correlation with private case membership, campaign views, and no fabricated associations.
 - [x] Display saved multi-source geolocation provenance, cache status, and approximate-location boundaries in the Location Map UI.
 - [x] Display encrypted provider availability in geolocation results while keeping IP-API free-plan HTTP access disabled.
-- [ ] Add migrations, tests, browser control checks, and GitHub synchronization for the completed requirements-assistant and forensic-workspace upgrade.
+- [x] Add migrations, tests, browser control checks, and GitHub synchronization for the completed requirements-assistant and forensic-workspace upgrade.
