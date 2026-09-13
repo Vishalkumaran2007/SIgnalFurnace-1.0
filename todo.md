@@ -155,3 +155,5 @@
 - [x] Add migrations, tests, browser control checks, and GitHub synchronization for the completed requirements-assistant and forensic-workspace upgrade.
 - [x] Run final deterministic integration checks for source-IP extraction and shared UI button-action handlers, then verify GitHub branch parity.
 - [x] Provide a plain-English SIH26106 requirement coverage assessment, including implemented capabilities, bounded features, and evidence-dependent validation gaps.
+- [x] Audit the supplied SIH26106 master checklist requirement by requirement, identify completed, conditional, and unavailable capabilities, and implement safe high-value gaps without fabricating evidence.
+- [ ] Implement the remaining master-checklist capabilities that require separate approved scope or live evidence: `.msg` parsing, DNS/RDAP/domain reputation, structured SMTP relay persistence, richer BEC/spoofing rules, full investigation graph, mailbox ingestion, granular analyst roles, retention/deletion policy, durable security audit events, and additional authorized test scenarios.

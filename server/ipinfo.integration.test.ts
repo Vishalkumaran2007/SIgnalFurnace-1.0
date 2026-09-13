@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 describe("IPinfo credential", () => {
-  it("accepts the configured token for a lightweight public-IP lookup", async () => {
+  it.skipIf(process.env.RUN_LIVE_PROVIDER_TESTS !== "true" || !process.env.IPINFO_TOKEN)("accepts the configured token for a lightweight public-IP lookup", async () => {
     const token = process.env.IPINFO_TOKEN;
     expect(token).toBeTruthy();
 

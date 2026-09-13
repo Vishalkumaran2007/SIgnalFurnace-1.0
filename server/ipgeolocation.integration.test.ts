@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 describe("IPGeolocation.io credential", () => {
-  it.skipIf(!process.env.IPGEOLOCATION_API_KEY)("accepts the configured key for a lightweight public-IP lookup", async () => {
+  it.skipIf(process.env.RUN_LIVE_PROVIDER_TESTS !== "true" || !process.env.IPGEOLOCATION_API_KEY)("accepts the configured key for a lightweight public-IP lookup", async () => {
     const key = process.env.IPGEOLOCATION_API_KEY;
     expect(key).toBeTruthy();
     const url = new URL("https://api.ipgeolocation.io/ipgeo");

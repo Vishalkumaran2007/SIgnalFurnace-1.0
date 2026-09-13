@@ -38,6 +38,8 @@ describe("forensic upgrade contracts", () => {
     const status = readFileSync(new URL("../client/src/components/GeoProviderStatus.tsx", import.meta.url), "utf8");
     expect(workbench).toContain("CaseProgressFooter");
     expect(workbench).toContain("workbench-timeline");
+    expect(workbench).toContain("Evidence graph");
+    expect(workbench).toContain("Search private cases");
     expect(workbench).toContain("CASE ACTIONS");
     expect(mapScreen).toContain("IP-API free HTTP is disabled");
     expect(status).toContain("cached results may be reused for 24 hours");

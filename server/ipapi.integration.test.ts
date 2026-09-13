@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 describe("IP-API Pro credential", () => {
-  it.skipIf(!process.env.IPAPI_KEY)("accepts the configured HTTPS key for a lightweight public-IP lookup", async () => {
+  it.skipIf(process.env.RUN_LIVE_PROVIDER_TESTS !== "true" || !process.env.IPAPI_KEY)("accepts the configured HTTPS key for a lightweight public-IP lookup", async () => {
     const key = process.env.IPAPI_KEY;
     const url = new URL("https://pro.ip-api.com/json/8.8.8.8");
     url.searchParams.set("key", key!);

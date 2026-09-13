@@ -8,7 +8,8 @@ describe("SIH26106 requirements checklist contract", () => {
     expect(home).toContain("const requirementChecklist");
     expect(home).toContain('id: "requirements"');
     expect(home).toContain("function RequirementsView");
-    expect(home).toContain("Email upload (.eml and .msg)");
+    expect(home).toContain("Email upload (.eml)");
+    expect(home).toContain(".msg parsing is not connected.");
     expect(home).toContain("Multi-location threat map");
     expect(home).toContain("Real-time alerting");
     expect(home).not.toContain('status: "missing"');

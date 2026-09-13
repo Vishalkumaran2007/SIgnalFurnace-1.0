@@ -108,7 +108,7 @@ type RequirementStatus = "available" | "waiting" | "missing";
 type RequirementItem = { id: string; module: string; title: string; detail: string; status: RequirementStatus; action?: View };
 
 const requirementChecklist: RequirementItem[] = [
-  { id: "email-upload", module: "01", title: "Email upload (.eml and .msg)", detail: "Secure .eml upload, evidence storage, and case creation are available. .msg parsing is still not connected.", status: "available", action: "analyzer" },
+  { id: "email-upload", module: "01", title: "Email upload (.eml)", detail: "Secure .eml upload, evidence storage, and case creation are available. .msg parsing is not connected.", status: "available", action: "analyzer" },
   { id: "email-parsing", module: "01", title: "Email parsing and metadata", detail: "Available for uploaded .eml files: sender, recipient, subject, message ID, headers, body text, and attachment names are saved with the case.", status: "available", action: "analyzer" },
   { id: "header-forensics", module: "02", title: "Header forensics", detail: "Available for uploaded .eml files: SPF, DKIM, DMARC result text, reply-to, return-path, received headers, and extracted IPs are recorded. Live DNS validation is not connected.", status: "available", action: "analyzer" },
   { id: "spoofing", module: "02", title: "Spoofing detection", detail: "Basic reply-to and sender-domain mismatch detection is available from parsed email headers. Domain reputation checks still need an external source.", status: "available", action: "analyzer" },
