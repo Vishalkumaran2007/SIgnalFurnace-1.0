@@ -21,7 +21,7 @@ describe("forensic upgrade contracts", () => {
     expect(source).toContain("listAssistantChatHistory(ctx.user.id)");
     expect(source).toContain("saveAssistantChatMessage(ctx.user.id");
     expect(source).toContain("Do not answer general knowledge questions");
-    expect(source).toContain("cannot inspect emails, cases, files, reports, accounts, or live data");
+    expect(source).toContain("You cannot inspect emails, cases, files, reports, accounts, or any live data.");
   });
 
   it("uses encrypted configured location sources and never references the free IP-API HTTP endpoint", () => {

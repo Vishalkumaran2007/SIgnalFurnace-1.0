@@ -30,7 +30,7 @@ describe("security and requested UI changes", () => {
     expect(home).toContain("Analyze an email");
     expect(home).toContain("Filters need live data");
     expect(home).toContain("There are no live notifications yet");
-    expect(home).toContain("New cases will be available after real data is connected");
+    expect(home).toContain("New case");
     expect(home).toContain("CSV");
     expect(home).toContain("PDF");
     expect(home).toContain("Choose .eml file");
