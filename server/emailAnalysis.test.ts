@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyAiContentAssessment, isLikelyEml, parseEml } from "./emailAnalysis";
+import { applyAiContentAssessment, isLikelyEml, isLikelyMsg, parseEml } from "./emailAnalysis";
 
 describe(".eml analysis", () => {
   it("extracts real headers, links, indicators, and structural authentication warnings", async () => {
@@ -62,6 +62,11 @@ describe(".eml analysis", () => {
   it("rejects a renamed non-email payload before it can be stored as evidence", () => {
     expect(isLikelyEml(Buffer.from("not an RFC822 message"))).toBe(false);
     expect(isLikelyEml(Buffer.from("From: analyst@example.test\r\nTo: soc@example.test\r\n\r\nHello"))).toBe(true);
+  });
+
+  it("recognizes only the Outlook compound-file signature before MSG parsing", () => {
+    expect(isLikelyMsg(Buffer.from("not an Outlook message"))).toBe(false);
+    expect(isLikelyMsg(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0]))).toBe(true);
   });
 
   it("adds a bounded AI review without reducing a stronger structural score", async () => {

@@ -1,7 +1,7 @@
 import { and, desc, eq, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { EmailArtifact, InsertUser, Investigation, assistantChatMessages, campaigns, emailArtifacts, evidenceChain, indicators, investigationEvents, investigationNotes, investigations, iocRecords, ipGeoCache, ipGeolocations, ipReputations, urlReputations, users } from "../drizzle/schema";
+import { EmailArtifact, InsertUser, Investigation, assistantChatMessages, campaigns, emailArtifacts, evidenceChain, indicators, investigationEvents, investigationNotes, investigations, iocRecords, ipGeoCache, ipGeolocations, ipReputations, securityAuditEvents, urlReputations, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { analyzeEmailContentWithAi, applyAiContentAssessment, type ParsedEmailAnalysis } from "./emailAnalysis";
 import { lookupPublicIpLocation, type GeolocationLookup } from "./geolocation";
@@ -36,6 +36,17 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function getUserByOpenId(openId: string) { const db = await getDb(); if (!db) return undefined; return (await db.select().from(users).where(eq(users.openId, openId)).limit(1))[0]; }
 export async function listAdministrativeUsers() { const db = await requireDb(); return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).orderBy(desc(users.lastSignedIn)); }
 export async function setAdministrativeUserRole(userId: number, role: "user" | "admin") { const db = await requireDb(); await db.update(users).set({ role }).where(eq(users.id, userId)); }
+
+export async function recordSecurityAuditEvent(input: { userId: number; actorRole: "user" | "admin"; eventType: string; resourceType?: string; resourceId?: string; metadata?: Record<string, string | number | boolean | null> }) {
+  const db = await requireDb();
+  const metadataJson = input.metadata ? JSON.stringify(input.metadata) : null;
+  await db.insert(securityAuditEvents).values({ userId: input.userId, actorRole: input.actorRole, eventType: input.eventType.slice(0, 128), resourceType: input.resourceType?.slice(0, 128), resourceId: input.resourceId?.slice(0, 128), metadataJson });
+}
+
+export async function listSecurityAuditEvents(limit = 100) {
+  const db = await requireDb();
+  return db.select().from(securityAuditEvents).orderBy(desc(securityAuditEvents.createdAt)).limit(Math.min(Math.max(limit, 1), 250));
+}
 export async function listAssistantChatHistory(userId: number) { const db = await requireDb(); const rows = await db.select().from(assistantChatMessages).where(eq(assistantChatMessages.userId, userId)).orderBy(desc(assistantChatMessages.createdAt)).limit(24); return rows.reverse(); }
 export async function saveAssistantChatMessage(userId: number, role: "user" | "assistant", content: string) { const db = await requireDb(); await db.insert(assistantChatMessages).values({ userId, role, content }); }
 

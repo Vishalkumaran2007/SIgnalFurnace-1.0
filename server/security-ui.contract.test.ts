@@ -33,7 +33,9 @@ describe("security and requested UI changes", () => {
     expect(home).toContain("New case");
     expect(home).toContain("CSV");
     expect(home).toContain("PDF");
-    expect(home).toContain("Choose .eml file");
+    expect(home).toContain("Choose email file");
+    expect(home).toContain(".eml");
+    expect(home).toContain(".msg");
     expect(home).toContain("Start secure check");
   });
 

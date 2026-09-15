@@ -4,8 +4,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { invokeLLM } from "./_core/llm";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { addInvestigationNote, enrichInvestigationAttachmentVirusTotal, enrichInvestigationGeolocation, enrichInvestigationPhishTank, enrichInvestigationReputation, enrichInvestigationVirusTotal, findSimilarInvestigations, getDashboardSummary, getInvestigation, listAdministrativeUsers, listAssistantChatHistory, listCampaigns, listGeolocations, listIndicators, listInvestigations, listIpReputations, recordInvestigationEvent, rerunInvestigationAiReview, saveAnalysis, saveAssistantChatMessage, setAdministrativeUserRole, updateInvestigationStatus, verifyInvestigationEvidenceChain } from "./db";
-import { analyzeEmailContentWithAi, applyAiContentAssessment, isLikelyEml, parseEml } from "./emailAnalysis";
+import { addInvestigationNote, enrichInvestigationAttachmentVirusTotal, enrichInvestigationGeolocation, enrichInvestigationPhishTank, enrichInvestigationReputation, enrichInvestigationVirusTotal, findSimilarInvestigations, getDashboardSummary, getInvestigation, listAdministrativeUsers, listAssistantChatHistory, listCampaigns, listGeolocations, listIndicators, listInvestigations, listIpReputations, listSecurityAuditEvents, recordInvestigationEvent, recordSecurityAuditEvent, rerunInvestigationAiReview, saveAnalysis, saveAssistantChatMessage, setAdministrativeUserRole, updateInvestigationStatus, verifyInvestigationEvidenceChain } from "./db";
+import { analyzeEmailContentWithAi, applyAiContentAssessment, isLikelyEml, isLikelyMsg, parseEml, parseMsg } from "./emailAnalysis";
 import { storagePut } from "./storage";
 import { notifyOwner } from "./_core/notification";
 import { z } from "zod";
@@ -105,21 +105,24 @@ export const appRouter = router({
       try { return await rerunInvestigationAiReview(ctx.user.id, input.investigationId); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "The bounded AI review could not be completed." }); }
     }),
     ingestEml: protectedProcedure.input(z.object({ filename: z.string().trim().min(1).max(512), mimeType: z.string().trim().max(128), base64: z.string().min(1).max(5_600_000) })).mutation(async ({ ctx, input }) => {
-      if (!input.filename.toLowerCase().endsWith(".eml")) throw new TRPCError({ code: "BAD_REQUEST", message: "Upload an .eml file. .msg parsing is not connected yet." });
+      const lowerFilename = input.filename.toLowerCase();
+      if (!lowerFilename.endsWith(".eml") && !lowerFilename.endsWith(".msg")) throw new TRPCError({ code: "BAD_REQUEST", message: "Upload an .eml or .msg email file." });
       const buffer = Buffer.from(input.base64, "base64");
       if (!buffer.length || buffer.length > 4 * 1024 * 1024) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Email files must be smaller than 4 MB." });
-      if (!isLikelyEml(buffer)) throw new TRPCError({ code: "BAD_REQUEST", message: "This file does not look like a valid RFC822 .eml email." });
-      const parsed = await parseEml(buffer);
+      const isMsg = lowerFilename.endsWith(".msg");
+      if (isMsg ? !isLikelyMsg(buffer) : !isLikelyEml(buffer)) throw new TRPCError({ code: "BAD_REQUEST", message: isMsg ? "This file does not look like a valid Outlook .msg email." : "This file does not look like a valid RFC822 .eml email." });
+      const parsed = isMsg ? await parseMsg(buffer) : await parseEml(buffer);
       const aiAssessment = await analyzeEmailContentWithAi(parsed);
       if (aiAssessment) applyAiContentAssessment(parsed, aiAssessment);
-      const stored = await storagePut(`evidence/${ctx.user.id}/${Date.now()}-${input.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`, buffer, "message/rfc822");
-      const saved = await saveAnalysis({ userId: ctx.user.id, filename: input.filename, mimeType: "message/rfc822", storageKey: stored.key, storageUrl: stored.url, parsed });
+      const stored = await storagePut(`evidence/${ctx.user.id}/${Date.now()}-${input.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`, buffer, isMsg ? "application/vnd.ms-outlook" : "message/rfc822");
+      const saved = await saveAnalysis({ userId: ctx.user.id, filename: input.filename, mimeType: isMsg ? "application/vnd.ms-outlook" : "message/rfc822", storageKey: stored.key, storageUrl: stored.url, parsed });
       let ownerAlert: "not_needed" | "delivered" | "unavailable" = "not_needed";
       if (parsed.threatScore >= 60) {
         const delivered = await notifyOwner({ title: `High-risk email case ${saved.caseNumber}`, content: `A completed private email check reached ${parsed.threatScore}/100 (${parsed.severity}). Review the case in Origin Tracker. No email body or attachment is included in this alert.` }).catch(() => false);
         ownerAlert = delivered ? "delivered" : "unavailable";
         await recordInvestigationEvent(ctx.user.id, saved.investigationId, "high_risk_alert", delivered ? "A high-risk owner alert was accepted for delivery." : "A high-risk owner alert could not be delivered; the case remains saved for review.");
       }
+      await recordSecurityAuditEvent({ userId: ctx.user.id, actorRole: ctx.user.role, eventType: "email_ingested", resourceType: "investigation", resourceId: String(saved.investigationId), metadata: { filename: input.filename, format: isMsg ? "msg" : "eml", threatScore: parsed.threatScore } });
       return { ...saved, ownerAlert, parsed: { sender: parsed.sender, recipient: parsed.recipient, originatingIp: parsed.originatingIp, indicators: parsed.indicators, subject: parsed.subject, urls: parsed.urls, attachmentNames: parsed.attachmentNames, spf: parsed.spf, dkim: parsed.dkim, dmarc: parsed.dmarc, threatScore: parsed.threatScore, confidence: parsed.confidence, severity: parsed.severity, summary: parsed.summary, reasons: parsed.reasons, findings: parsed.findings, ai: parsed.ai } };
     }),
     addNote: protectedProcedure.input(z.object({ investigationId: z.number().int().positive(), content: z.string().trim().min(1).max(5000) })).mutation(async ({ ctx, input }) => { await addInvestigationNote(ctx.user.id, input.investigationId, input.content); return { success: true } as const; }),
@@ -127,6 +130,10 @@ export const appRouter = router({
   }),
 
   admin: router({
+    auditEvents: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(250).optional() }).optional()).query(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
+      return listSecurityAuditEvents(input?.limit);
+    }),
     users: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
       return listAdministrativeUsers();
@@ -135,6 +142,7 @@ export const appRouter = router({
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Administrator access is required." });
       if (input.userId === ctx.user.id && input.role !== "admin") throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot remove your own administrator access." });
       await setAdministrativeUserRole(input.userId, input.role);
+      await recordSecurityAuditEvent({ userId: ctx.user.id, actorRole: ctx.user.role, eventType: "role_changed", resourceType: "user", resourceId: String(input.userId), metadata: { newRole: input.role } });
       return { success: true } as const;
     }),
   }),

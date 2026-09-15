@@ -4,7 +4,7 @@
 
 | Category | Current status | Evidence-based coverage | Important boundary or next safe step |
 |---|---|---|---|
-| A. Email ingestion | Partial | Protected `.eml` upload, RFC822 validation, raw-evidence storage, parsing, attachments, URLs, SHA-256, and case IDs. | Add separate CC/BCC and HTML-body persistence; `.msg` remains unavailable. |
+| A. Email ingestion | Partial | Protected `.eml` and Outlook `.msg` upload, format validation, raw-evidence storage, parsing, attachments, URLs, SHA-256, and case IDs. | Add separate CC/BCC and HTML-body persistence. |
 | B. Header forensics | Partial | From, To, Reply-To, Return-Path, Message-ID, Date, Authentication-Results, received-header text, source-IP selection, and mismatch signals. | Add structured received-hop reconstruction, DKIM selector display, and more header-consistency findings. |
 | C. SPF/DKIM/DMARC | Partial | Stored Authentication-Results pass/fail text and explanations. | Live DNS record lookup, signature verification, and alignment validation are not claimed. |
 | D. AI threat detection | Partial | Bounded phishing, BEC, spam, malware-delivery, benign, and uncertain classification with confidence and evidence-only recommendations. | Expand deterministic local labels for impersonation, payment fraud, and fake-invoice signals without treating AI as proof. |

@@ -55,16 +55,16 @@
 
 ## Functional SIH26106 Platform Upgrade
 
-- [x] Build protected .eml upload, structural header parsing, URL and attachment-name extraction, and evidence storage.
+- [x] Build protected .eml and .msg upload, structural header parsing, URL and attachment-name extraction, and evidence storage.
 - [x] Add case management, investigation timelines, analyst notes, IOC extraction, and report exports.
 - [x] Add threat scoring, AI email analysis, geolocation, threat mapping, and dashboard data from completed checks.
 - [x] Connect PhishTank when approved credentials or data-feed access are supplied.
 - [x] Validate the end-to-end analysis workflow and update the SIH26106 requirements checklist with real capability statuses.
 
-- [x] Create private investigations, evidence metadata, timeline events, case notes, and extracted IOC records for every completed .eml check.
+- [x] Create private investigations, evidence metadata, timeline events, case notes, and extracted IOC records for every completed .eml or .msg check.
 - [x] Persist a structural threat score, confidence, severity, and explanation from real parsed email signals, then show those records in the dashboard, intelligence, and case-detail views.
 - [x] Add a separate bounded server-side AI content review with structured output, persisted provenance, and evidence-only safety constraints; keep the navigation-only AI Guide unchanged.
-- [x] Update the requirements checklist to reflect available .eml structural and bounded AI checks while explicitly retaining external reputation, geolocation, reporting, and .msg parser gaps.
+- [x] Update the requirements checklist to reflect available .eml/.msg structural and bounded AI checks while explicitly retaining external reputation, geolocation, and reporting boundaries.
 - [x] Add parser and no-fabricated-data contract tests, then verify tests, type checking, and a production build.
 
 - [x] Preserve the existing premium landing page without changing its public-facing visual direction.
@@ -156,4 +156,7 @@
 - [x] Run final deterministic integration checks for source-IP extraction and shared UI button-action handlers, then verify GitHub branch parity.
 - [x] Provide a plain-English SIH26106 requirement coverage assessment, including implemented capabilities, bounded features, and evidence-dependent validation gaps.
 - [x] Audit the supplied SIH26106 master checklist requirement by requirement, identify completed, conditional, and unavailable capabilities, and implement safe high-value gaps without fabricating evidence.
-- [ ] Implement the remaining master-checklist capabilities that require separate approved scope or live evidence: `.msg` parsing, DNS/RDAP/domain reputation, structured SMTP relay persistence, richer BEC/spoofing rules, full investigation graph, mailbox ingestion, granular analyst roles, retention/deletion policy, durable security audit events, and additional authorized test scenarios.
+- [ ] Implement the remaining master-checklist capabilities that require separate approved scope or live evidence: DNS/RDAP/domain reputation, structured SMTP relay persistence, richer BEC/spoofing rules, mailbox ingestion, granular analyst roles, retention/deletion policy, and additional authorized test scenarios. Evidence-backed graph controls and durable security-audit events are implemented.
+- [x] Add protected `.msg` ingestion and parsing, then update the master checklist after deterministic parser, fixture, full-suite, type, and production-build validation confirmed the same private evidence boundaries as `.eml`.
+- [x] Add the supplied portfolio links for Srinidhi H, Surya V, Sankarprasath S, Rohini S, and Sayasree T K to the Meet the project team section.
+- [x] Restore the earlier map presentation while preserving the current real-data eligibility, provider approval, and map lifecycle safeguards.

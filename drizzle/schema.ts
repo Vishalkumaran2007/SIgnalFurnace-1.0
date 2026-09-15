@@ -201,6 +201,17 @@ export const investigationEvents = mysqlTable("investigation_events", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const securityAuditEvents = mysqlTable("security_audit_events", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  actorRole: mysqlEnum("actorRole", ["user", "admin"]).notNull(),
+  eventType: varchar("eventType", { length: 128 }).notNull(),
+  resourceType: varchar("resourceType", { length: 128 }),
+  resourceId: varchar("resourceId", { length: 128 }),
+  metadataJson: text("metadataJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const investigationNotes = mysqlTable("investigation_notes", {
   id: int("id").autoincrement().primaryKey(),
   investigationId: int("investigationId").notNull(),
@@ -229,3 +240,4 @@ export type EvidenceChainBlock = typeof evidenceChain.$inferSelect;
 export type IocRecord = typeof iocRecords.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type AssistantChatMessage = typeof assistantChatMessages.$inferSelect;
+export type SecurityAuditEvent = typeof securityAuditEvents.$inferSelect;

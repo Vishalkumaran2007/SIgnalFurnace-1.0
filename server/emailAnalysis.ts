@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { simpleParser } from "mailparser";
+import MsgReaderModule from "@kenjiuno/msgreader";
 import { invokeLLM } from "./_core/llm";
 import { isPublicIpv4 } from "./geolocation";
 import { analyzeAttachments, type AttachmentAnalysis } from "./attachmentAnalysis";
@@ -48,6 +49,7 @@ export type ParsedEmailAnalysis = {
 const urlPattern = /https?:\/\/[^\s<>"')\]]+/gi;
 const ipv4Pattern = /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g;
 const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const MsgReader = ((MsgReaderModule as unknown as { default?: unknown }).default ?? MsgReaderModule) as new (buffer: ArrayBuffer) => { getFileData: () => unknown; getAttachment: (attachment: unknown) => { content: Uint8Array } };
 
 function authStatus(value: unknown): AuthResult {
   const text = String(value ?? "").toLowerCase();
@@ -81,6 +83,16 @@ export function isLikelyEml(buffer: Buffer) {
   const hasHeaderBodyBoundary = /\r?\n\r?\n/.test(opening);
   const hasRfc822Header = /(?:^|\r?\n)[A-Za-z][A-Za-z-]{1,70}:\s*/.test(opening);
   return hasHeaderBodyBoundary && hasRfc822Header;
+}
+
+/** Outlook .msg files use the Compound File Binary Format signature. */
+export function isLikelyMsg(buffer: Buffer) {
+  const signature = Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+  return buffer.length >= signature.length && buffer.subarray(0, signature.length).equals(signature);
+}
+
+function cleanHeaderValue(value: unknown) {
+  return String(value || "").replace(/[\r\n]+/g, " ").trim();
 }
 
 function headerAddressText(value: { text: string } | Array<{ text: string }> | undefined) {
@@ -184,6 +196,43 @@ export async function parseEml(buffer: Buffer): Promise<ParsedEmailAnalysis> {
     findings,
     ai: null,
   };
+}
+
+/** Normalizes a user-uploaded Outlook .msg into the existing evidence-first analysis shape. */
+export async function parseMsg(buffer: Buffer): Promise<ParsedEmailAnalysis> {
+  if (!isLikelyMsg(buffer)) throw new Error("This file does not look like a valid Outlook .msg message.");
+  const arrayBuffer = Uint8Array.from(buffer).buffer;
+  const reader = new MsgReader(arrayBuffer);
+  const fields = reader.getFileData() as any;
+  const recipients = (Array.isArray(fields.recipients) ? fields.recipients : []).map((item: any) => cleanHeaderValue(item.email || item.smtpAddress || item.name)).filter(Boolean);
+  const sender = cleanHeaderValue(fields.senderEmail || fields.creatorSMTPAddress || fields.senderName) || null;
+  const recipient = recipients.join(", ") || null;
+  const subject = cleanHeaderValue(fields.subject) || null;
+  const rawHeaders = cleanHeaderValue(fields.headers);
+  const bodyText = String(fields.body || fields.html || "").slice(0, 100000);
+  const normalizedRfc822 = [sender ? `From: ${sender}` : "", recipient ? `To: ${recipient}` : "", subject ? `Subject: ${subject}` : "", fields.messageDeliveryTime ? `Date: ${cleanHeaderValue(fields.messageDeliveryTime)}` : "", rawHeaders, "", bodyText].filter(Boolean).join("\r\n");
+  const parsed = await parseEml(Buffer.from(normalizedRfc822, "utf8"));
+  const attachments = (Array.isArray(fields.attachments) ? fields.attachments : []).map((attachment: any) => {
+    const filename = cleanHeaderValue(attachment.fileName || attachment.fileNameShort || attachment.name) || "outlook-attachment";
+    let content = Buffer.alloc(0);
+    try { content = Buffer.from(reader.getAttachment(attachment).content); } catch { /* keep metadata-only evidence if extraction is unavailable */ }
+    return { filename, contentType: cleanHeaderValue(attachment.mimeType) || "application/octet-stream", content, size: content.byteLength };
+  });
+  const attachmentAnalysis = analyzeAttachments(attachments);
+  parsed.sender = sender;
+  parsed.recipient = recipient;
+  parsed.subject = subject;
+  parsed.rawHeaders = rawHeaders || parsed.rawHeaders;
+  parsed.bodyText = bodyText;
+  parsed.attachmentAnalysis = attachmentAnalysis;
+  parsed.attachmentNames = attachmentAnalysis.map((attachment) => attachment.filename);
+  if (attachmentAnalysis.length) {
+    parsed.reasons.push(`${attachmentAnalysis.length} Outlook attachment${attachmentAnalysis.length === 1 ? "" : "s"} found`);
+    parsed.threatScore = Math.min(100, parsed.threatScore + Math.min(10, attachmentAnalysis.length * 4));
+    if (attachmentAnalysis.some((attachment) => attachment.attachmentVerdict === "HIGH_RISK")) parsed.threatScore = Math.max(parsed.threatScore, 75);
+    parsed.severity = parsed.threatScore >= 80 ? "critical" : parsed.threatScore >= 60 ? "high" : parsed.threatScore >= 35 ? "medium" : parsed.threatScore > 0 ? "low" : "safe";
+  }
+  return parsed;
 }
 
 function boundedText(value: unknown, maxLength: number) {
